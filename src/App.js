@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = 'https://your-railway-url.up.railway.app';
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const BASELINE_MONTHS = [
