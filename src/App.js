@@ -532,7 +532,7 @@ export default function App(){
       const payload = { project_id: projectId, months };
       console.log('sending to API:', payload);
 
-      const res = await fetch('http://localhost:5000/api/baseline', {
+      const res = await fetch('https://productivity-tracker-production-6bb0.up.railway.app/api/baseline', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload),
