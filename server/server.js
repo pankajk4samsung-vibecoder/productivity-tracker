@@ -1,4 +1,3 @@
-process.chdir(__dirname);
 require('dotenv').config();
 const express = require('express');
 const mysql   = require('mysql2/promise');
@@ -10,6 +9,10 @@ app.use(cors());
 app.use(express.json());
 
 // ── Database connection pool ────────────────────────────
+const sslConfig = process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com')
+  ? { ssl: { rejectUnauthorized: false } }
+  : {};
+
 const pool = mysql.createPool({
   host:               process.env.DB_HOST,
   user:               process.env.DB_USER,
@@ -18,17 +21,50 @@ const pool = mysql.createPool({
   port:               process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit:    10,
+  ...sslConfig
 });
 
-// ── Test DB connection on startup ───────────────────────
-pool.getConnection()
-  .then(conn => {
+// ── Auto create tables on startup ──────────────────────
+async function setupDatabase(){
+  try{
+    const conn = await pool.getConnection();
     console.log('✅ MySQL connected successfully');
+
+    await conn.query(`CREATE TABLE IF NOT EXISTS projects (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      project_name VARCHAR(150) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    await conn.query(`CREATE TABLE IF NOT EXISTS project_baselines (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      project_id INT NOT NULL,
+      baseline_avg DECIMAL(10,2) NOT NULL,
+      green_threshold DECIMAL(10,2) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id)
+    )`);
+
+    await conn.query(`CREATE TABLE IF NOT EXISTS monthly_story_points (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      project_id INT NOT NULL,
+      year INT NOT NULL,
+      month INT NOT NULL,
+      story_points INT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id),
+      UNIQUE KEY uq_project_month (project_id, year, month)
+    )`);
+
+    console.log('✅ All tables created successfully');
     conn.release();
-  })
-  .catch(err => {
-    console.error('❌ MySQL connection failed:', err.message);
-  });
+  } catch(err){
+    console.error('❌ Database setup failed:', err.message);
+  }
+}
+
+setupDatabase();
 
 // ── GET all projects with baseline + tracking data ──────
 app.get('/api/projects', async (req, res) => {
@@ -101,7 +137,7 @@ app.delete('/api/projects/:id', async (req, res) => {
   }
 });
 
-// ── POST save / update one baseline month ──────────────
+// ── POST save / update one baseline ────────────────────
 app.post('/api/baseline', async (req, res) => {
   const { project_id, months } = req.body;
   try {
@@ -158,5 +194,5 @@ app.get('*', (req, res) => {
 // ── Start server ────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 API running on http://localhost:${PORT}`);
+  console.log(`🚀 API running on port ${PORT}`);
 });
