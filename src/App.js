@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 
-const API = 'https://your-railway-url.up.railway.app';
+const API = 'https://productivity-tracker-production-6bb0.up.railway.app';
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const BASELINE_MONTHS = [
