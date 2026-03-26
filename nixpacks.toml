@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["npm install", "cd server && npm install && cd .."]
+cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npm run build"]
